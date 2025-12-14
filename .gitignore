@@ -205,3 +205,31 @@ cython_debug/
 marimo/_static/
 marimo/_lsp/
 __marimo__/
+
+# Standard Python ignores...
+*.py[cod]
+# Environment stuff...
+# Data (usually managed outside git or with LFS/DVC)
+# data/
+# Logs
+logs/
+# Models (usually large)
+models/*.pkl
+models/*.h5
+models/*.onnx
+# Notebook checkpoints
+# IDE folders
+.vscode/
+.idea/
+# OS files
+.DS_Store
+Thumbs.db
+# Standard Python ignores
+environment.yml
+# Data and Logs
+data/
+# Models/Checkpoints
+checkpoints/
+models/
+# IDE files
+# Jupyter
