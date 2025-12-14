@@ -1,0 +1,54 @@
+# --- configs/params.yaml ---
+
+# --- Global Training Parameters ---
+training_settings:
+  # Optimizer learning rate for Deep Learning models
+  learning_rate: 0.0001
+
+  # Callbacks Configuration
+  gradient_clip_norm: 1.0 # Maximum L2 norm for gradient clipping
+  es_patience: 5 # Early Stopping: wait this many epochs before stopping
+  lr_scheduler_patience: 2 # LR Scheduler: wait this many epochs before reducing LR
+  lr_scheduler_factor: 0.5 # LR Scheduler: factor by which the LR will be reduced (new_lr = old_lr * factor)
+
+# --- Model Specific Hyperparameters ---
+model_options:
+  # Classic Deep Learning Models
+  LSTM:
+    embedding_dim: 100
+    hidden_dim: 256
+    num_layers: 2
+    dropout: 0.5
+
+  CNN:
+    embedding_dim: 100
+    n_filters: 100
+    filter_sizes: [3, 4, 5]
+    dropout: 0.5
+
+  # Advanced Deep Learning Models
+  LSTMATTENTION:
+    embedding_dim: 100
+    hidden_dim: 256
+    num_layers: 2
+    dropout: 0.5
+
+  # Modern Transfer Learning Models
+  BERT:
+    dropout: 0.1
+    # Note: 'distilbert-base-uncased' is the model ID from Hugging Face
+    model_name: "distilbert-base-uncased"
+
+  SBERT:
+    dropout: 0.1
+    # Note: 'sentence-transformers/all-MiniLM-L6-v2' is the model ID
+    model_name: "sentence-transformers/all-MiniLM-L6-v2"
+
+  # Classical Machine Learning Models
+  LOGREG:
+    # Max features for TF-IDF Vectorizer
+    max_features: 10000
+
+  SVM:
+    # Max features for TF-IDF Vectorizer
+    max_features: 15000
