@@ -114,3 +114,19 @@ def get_device() -> torch.device:
     except Exception as e:
         logger.error(f"Error determining device: {e}")
         raise e
+
+def get_num_workers(is_training=True, max_workers=None) -> int:
+    """
+    Determines the optimal number of DataLoader workers based on the system and training mode.
+    """
+    # Default to half the number of CPU cores
+    logger.info("Determining optimal number of DataLoader workers.")
+    if max_workers is None:
+        max_workers = os.cpu_count()
+    
+
+    if not is_training:
+        return min(2, max_workers)
+    
+    # Training: conservative but effective
+    return min(8, max_workers // 2)
