@@ -230,6 +230,5 @@ environment.yml
 data/
 # Models/Checkpoints
 checkpoints/
-models/
 # IDE files
 # Jupyter
