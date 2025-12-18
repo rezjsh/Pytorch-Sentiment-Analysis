@@ -116,7 +116,8 @@ class ConfigurationManager(metaclass=SingletonMeta):
         cnn_config = CNNClassifierConfig(
             num_filters=params.num_filters,
             filter_sizes=params.filter_sizes,
-            dropout=params.dropout
+            dropout=params.dropout,
+            embedding_dim=params.embedding_dim
         )
 
         logger.info(f"CNNClassifierConfig created: {cnn_config}")
