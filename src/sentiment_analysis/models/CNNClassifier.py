@@ -1,8 +1,9 @@
-from typing import Dict
+from typing import Dict, Union
 from sentiment_analysis.entity.config_entity import CNNClassifierConfig
 from sentiment_analysis.models.BaseClassifier import BaseClassifier
 import torch
 import torch.nn as nn
+import torch.nn.functional as F
 
 class CNNClassifier(BaseClassifier):
     '''A 1D Convolutional Neural Network (CNN) for text classification.'''
@@ -13,20 +14,43 @@ class CNNClassifier(BaseClassifier):
         self.embedding = nn.Embedding(vocab_size, self.config.embedding_dim)
         
         self.convs = nn.ModuleList([
-            nn.Conv2d(in_channels=1, out_channels=self.config.num_filters, kernel_size=(fs, self.config.embedding_dim))
+            nn.Conv1d(in_channels=self.config.embedding_dim, out_channels=self.config.num_filters, kernel_size=fs)
             for fs in self.config.filter_sizes
         ])
 
-        self.fc = nn.Linear(len(self.config.filter_sizes) * self.config.num_filters, 1)
+        self.fc = nn.Linear(len(self.config.filter_sizes) * self.config.num_filters, self.output_dim)
         self.dropout = nn.Dropout(self.config.dropout)
         
-    def forward(self, batch: Dict[str, torch.Tensor]) -> torch.Tensor:
-        text = batch['text']  # Assuming batch contains 'text' key with input tensor
-        embedded = self.embedding(text).unsqueeze(1)  # Add channel dimension
+    def forward(self, batch: Union[Dict[str, torch.Tensor], torch.Tensor]) -> torch.Tensor:
+        """
+        Forward pass handling both Trainer dicts and raw tensors.
+        """
+        # 1. Extract input_ids
+        input_ids = batch['input_ids'] if isinstance(batch, dict) else batch
+
+        # 2. Embedding & Dropout
+        # Shape: [batch size, seq len, emb dim]
+        embedded = self.dropout(self.embedding(input_ids))
         
-        conved = [torch.relu(conv(embedded)).squeeze(3) for conv in self.convs]
-        pooled = [torch.max(conv, dim=2)[0] for conv in conved]
+        # 3. Permute for Conv1D (expects channels first)
+        # Shape: [batch size, emb dim, seq len]
+        embedded = embedded.permute(0, 2, 1)
+
+        # 4. Convolution & ReLU activation
+        # Each conved[n] shape: [batch size, num_filters, seq_len - fs + 1]
+        conved = [F.relu(conv(embedded)) for conv in self.convs]
         
+        # 5. Global Max Pooling over time
+        # This reduces the sequence dimension to 1, picking the strongest feature
+        # Each pooled[n] shape: [batch size, num_filters]
+        pooled = [F.max_pool1d(conv, conv.shape[-1]).squeeze(-1) for conv in conved]
+
+        # 6. Concatenate all pooled features and apply Dropout
+        # Shape: [batch size, num_filters * num_filter_sizes]
         cat = self.dropout(torch.cat(pooled, dim=1))
         
-        return self.fc(cat)
+        # 7. Final Linear layer (logits)
+        prediction = self.fc(cat)
+
+        # Return a 1D tensor [batch_size] for BCEWithLogitsLoss
+        return prediction.view(-1)
