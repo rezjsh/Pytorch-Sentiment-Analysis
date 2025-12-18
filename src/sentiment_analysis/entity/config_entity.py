@@ -54,6 +54,7 @@ class CNNClassifierConfig:
     num_filters: int
     filter_sizes: List[int]
     dropout: float
+    embedding_dim: int
 
 
 @dataclass(frozen=True)
