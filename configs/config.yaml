@@ -14,7 +14,25 @@ data:
   # Random seed for reproducibility across splits and models
   seed: 42
   # Tokenizer names for different models
-  tokenizer_name: "bert-base-uncased
+  tokenizer_name: "bert-base-uncased"
+
+eda:
+  report_dir: "reports/eda_reports"
+  max_words_to_plot: 50
+
+model:
+  model_type: "SBERT"
+
+callacks:
+  model_checkpoint:
+    checkpoint_dir: "checkpoints/"
+
+trainer:
+  report_dir: "reports/model_reports"
+
+evaluation:
+  model_path: "checkpoints/best_model.pth"
+  report_dir: "reports/evaluation_reports"
 
 trainer_defaults:
   # Maximum epochs to run (Early Stopping will stop it sooner)
