@@ -22,6 +22,10 @@ INSTALL_REQUIRES = [
     "pandas>=2.0.0",
     "numpy>=1.24.0",
     
+    # Text Preprocessing
+    "nltk>=3.8.1",
+    "wordcloud>=1.8.2",
+    
     # NLP & Transformers
     "transformers>=4.30.0",
     "datasets>=2.14.0",
