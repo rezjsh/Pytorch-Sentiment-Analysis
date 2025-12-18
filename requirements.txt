@@ -9,6 +9,13 @@ tqdm>=4.66.0         # For progress bars in the custom Trainer
 torch>=2.0.0
 torchmetrics>=1.0.0  # For accurate metric calculation
 
+# --- Text Preprocessing Dependencies ---
+# Required for text cleaning and EDA
+nltk>=3.8.1          # For text preprocessing and tokenization
+wordcloud>=1.8.2    # For generating word clouds in EDA
+
+
+
 # --- Hugging Face/Transformer Dependencies ---
 # Required for BERT, SBERT, and Tokenization/DataModule
 transformers>=4.30.0
@@ -28,5 +35,8 @@ seaborn>=0.12.0
 # --- Streamlit Application Dependencies ---
 # Required ONLY if you run the streamlit app (app.py)
 streamlit>=1.28.0
+
+
+    
 
 -e .
