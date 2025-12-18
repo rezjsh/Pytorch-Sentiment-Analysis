@@ -1,15 +1,7 @@
 # --- configs/params.yaml ---
-
-# --- Global Training Parameters ---
-training_settings:
-  # Optimizer learning rate for Deep Learning models
-  learning_rate: 0.0001
-
-  # Callbacks Configuration
-  gradient_clip_norm: 1.0 # Maximum L2 norm for gradient clipping
-  es_patience: 5 # Early Stopping: wait this many epochs before stopping
-  lr_scheduler_patience: 2 # LR Scheduler: wait this many epochs before reducing LR
-  lr_scheduler_factor: 0.5 # LR Scheduler: factor by which the LR will be reduced (new_lr = old_lr * factor)
+eda:
+  max_words_to_plot: 50
+  min_word_len: 3
 
 # --- Model Specific Hyperparameters ---
 model_options:
@@ -19,6 +11,8 @@ model_options:
     hidden_dim: 256
     num_layers: 2
     dropout: 0.5
+    bidirectional: True
+    batch_first: True
 
   CNN:
     embedding_dim: 100
@@ -52,3 +46,31 @@ model_options:
   SVM:
     # Max features for TF-IDF Vectorizer
     max_features: 15000
+
+callbacks:
+  # Early Stopping Configuration
+  early_stopping:
+    pacience: 5
+    mode: "min"
+    min_delta: 0.001
+
+  # Learning Rate Scheduler Configuration
+  lr_scheduler:
+    patience: 2
+    factor: 0.5
+    mode: "min"
+
+  # Gradient Clipping Configuration
+  gradient_clip:
+    max_norm: 1.0
+
+# --- Global Training Parameters ---
+trainer:
+  # Optimizer learning rate for Deep Learning models
+  learning_rate: 0.0001
+
+  # Callbacks Configuration
+  gradient_clip_norm: 1.0 # Maximum L2 norm for gradient clipping
+  es_patience: 5 # Early Stopping: wait this many epochs before stopping
+  lr_scheduler_patience: 2 # LR Scheduler: wait this many epochs before reducing LR
+  lr_scheduler_factor: 0.5 # LR Scheduler: factor by which the LR will be reduced (new_lr = old_lr * factor)
