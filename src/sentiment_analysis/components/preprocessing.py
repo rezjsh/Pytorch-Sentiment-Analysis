@@ -34,7 +34,17 @@ class Preprocessing:
         
         logger.info(f"SentimentDataModule initialized for dataset: {self.dataset_name}")
         logger.info(f"Tokenizer type: {type(self.tokenizer).__name__} | Vocab size: {self.vocab_size}")
-        
+    
+
+    def get_raw_data(self):
+        """Returns raw text data and labels for ML models."""
+        logger.info("Returning raw data for ML models...")
+        if not self.raw_train_texts or not self.raw_test_texts:
+            logger.error("Raw data not available. Ensure 'setup()' has been called.")
+            raise ValueError("Raw data not available.")
+        return (self.raw_train_texts, self.raw_train_labels,
+                self.raw_test_texts, self.raw_test_labels)
+
     def load_full_dataset(self):
         """Helper to load the raw HuggingFace dataset."""
         try:
@@ -108,22 +118,4 @@ class Preprocessing:
         return (self.train_encodings, train_labels,
             self.val_encodings, val_labels,
             self.test_encodings, test_labels)
-        # 5. Create PyTorch Datasets (Storage for DataLoaders)
-        self.train_dataset = IMDBDataset(self.train_encodings, train_labels)
-        self.val_dataset = IMDBDataset(self.val_encodings, val_labels)
-        self.test_dataset = IMDBDataset(self.test_encodings, test_labels)
-        
-        logger.info("Data setup complete. Datasets ready.")
-
-    # Public methods to retrieve the data loaders (delegating to the separate manager)
-    def train_dataloader(self) -> DataLoader:
-        if not self.train_dataset: self.setup()
-        return self.data_loader_manager.create_loader(self.train_dataset, shuffle=True)
-
-    def val_dataloader(self) -> DataLoader:
-        if not self.val_dataset: self.setup()
-        return self.data_loader_manager.create_loader(self.val_dataset, shuffle=False)
-
-    def test_dataloader(self) -> DataLoader:
-        if not self.test_dataset: self.setup()
-        return self.data_loader_manager.create_loader(self.test_dataset, shuffle=False)
+       
