@@ -67,7 +67,7 @@ class LSTMATTENTIONConfig:
 
 
 @dataclass(frozen=True)
-class BERTConfig:
+class BERTClassifierConfig:
     pretrained_model_name: str
     dropout: float
     fine_tune: bool
@@ -101,7 +101,7 @@ class ModelConfig:
     LSTM: Optional[LSTMClassifierConfig] = None
     CNN: Optional[CNNClassifierConfig] = None
     LSTMATTENTION: Optional[LSTMATTENTIONConfig] = None
-    BERT: Optional[BERTConfig] = None
+    BERT: Optional[BERTClassifierConfig] = None
     SBERT: Optional[SBERTConfig] = None
     LOGREG: Optional[LOGREGConfig] = None
     SVM: Optional[SVMConfig] = None
