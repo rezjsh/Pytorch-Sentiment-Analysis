@@ -54,9 +54,10 @@ class ModelCreator:
             raise ValueError(f"Model {model_type} not implemented in ModelCreator.")
             
         # Move the model to the target device (CPU/CUDA)
-        model.to(self.device)
-        
-        logger.info(f"Model {model_type} created and moved to {self.device}.")
+        if model_type not in ['LOGREG', 'SVM']:
+            model.to(self.device)
+            logger.info(f"Model {model_type} moved to {self.device}.")
+        logger.info(f"Model {model_type} created successfully.")
         logger.info(f"Model architecture:\n{model}")
         
         return model
