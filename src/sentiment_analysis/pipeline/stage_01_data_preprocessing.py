@@ -13,8 +13,9 @@ class PreprocessingPipeline:
             preprocessing = Preprocessing(preprocessing_config)
             preprocessing.prepare_data()
             preprocessed_data = preprocessing.setup()
+            raw_data = preprocessing.get_raw_data()
             logger.info("Data preprocessing pipeline completed.")
-            return preprocessed_data
+            return preprocessed_data, raw_data
         except Exception as e:
             logger.error(f"Error occurred during data preprocessing pipeline: {e}")
             raise
