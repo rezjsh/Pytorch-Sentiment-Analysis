@@ -44,7 +44,7 @@ class MLClassifier:
             "SVM": LinearSVC(
                 C=getattr(self.config, 'C', 1.0),
                 random_state=42, 
-                max_iter=self.config.get('max_iter', 2000),
+                max_iter=getattr(self.config, 'max_iter', 2000),
                 dual="auto" # Automatically chooses dual/primal based on n_samples
             )
         }
