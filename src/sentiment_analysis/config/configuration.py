@@ -4,7 +4,7 @@ from src.utils.helpers import create_directory, read_yaml_file
 from src.utils.logging_setup import logger
 from src.core.singleton import SingletonMeta
 import torch
-from entity.config_entity import BERTConfig, CNNClassifierConfig, CallbacksConfig, DatasetConfig, EDAConfig, EarlyStoppingCallbackConfig, GradientClipCallbackConfig, LOGREGConfig, LRSchedulerCallbackConfig, LSTMATTENTIONConfig, LSTMClassifierConfig, ModelCheckpointCallbackConfig, ModelConfig, ModelEvaluationConfig, ModelTrainerConfig, PreprocessingConfig, SBERTConfig, SVMConfig
+from entity.config_entity import BERTConfig, CNNClassifierConfig, CallbacksConfig, DatasetConfig, EDAConfig, EarlyStoppingCallbackConfig, GradientClipCallbackConfig, LOGREGConfig, LRSchedulerCallbackConfig, LSTMATTENTIONConfig, LSTMClassifierConfig, MLClassifierConfig, ModelCheckpointCallbackConfig, ModelConfig, ModelEvaluationConfig, ModelTrainerConfig, PreprocessingConfig, SBERTConfig, SVMConfig
 from sentiment_analysis.utils.helpers import get_num_workers
 import os
 
@@ -12,6 +12,18 @@ class ConfigurationManager(metaclass=SingletonMeta):
     def __init__(self, config_file_path: str = CONFIG_FILE_PATH, params_file_path: str = PARAMS_FILE_PATH):
         self.config = read_yaml_file(config_file_path)
         self.params = read_yaml_file(params_file_path)
+
+    
+    def get_mode(self) -> str:
+        """
+        Retrieves the mode of operation: 'ML' for Machine Learning or 'DL' for Deep Learning.
+        """
+        logger.info("Getting mode of operation from config.")
+        mode = self.config.get('mode', 'DL').upper()
+        if mode not in ['ML', 'DL']:
+            raise ValueError(f"Invalid mode '{mode}' specified in config. Choose 'ML' or 'DL'.")
+        logger.info(f"Mode of operation: {mode}")
+        return mode
     
     def get_preprocessing_config(self) -> PreprocessingConfig:
         logger.info("Getting text preprocessing config")
@@ -70,6 +82,23 @@ class ConfigurationManager(metaclass=SingletonMeta):
         logger.info(f"EDAConfig created: {eda_config}")
         return eda_config
     
+
+    def get_ml_classifier_config(self) -> MLClassifierConfig:
+        config = self.config.ml_baseline
+        params = self.params.ml_baseline
+        
+        # Ensure directories for the model and reports exist
+        create_directory([Path(config.model_path).parent, Path(config.report_path).parent])
+
+        return MLClassifierConfig(
+            classifier_name=config.classifier_name,
+            model_path=Path(config.model_path),
+            report_path=Path(config.report_path),
+            max_features=params.max_features,
+            ngram_range=params.ngram_range,
+            C=config.C,
+            max_iter=params.max_iter
+        )
 
     def get_lstm_config(self, model_type: str) -> LSTMClassifierConfig:
         """
@@ -251,9 +280,7 @@ class ConfigurationManager(metaclass=SingletonMeta):
             CNN=self.get_cnn_config(model_type),
             LSTMATTENTION=self.get_lstm_attention_config(model_type),
             BERT=self.get_bert_config(model_type),
-            SBERT=self.get_sbert_config(model_type),
-            LOGREG=self.get_logreg_config(model_type),
-            SVM=self.get_svm_config(model_type)
+            SBERT=self.get_sbert_config(model_type)
         )
         logger.info(f"ModelConfig created: {model_config}")
         return model_config
