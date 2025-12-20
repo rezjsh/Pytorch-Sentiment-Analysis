@@ -3,6 +3,13 @@ eda:
   max_words_to_plot: 50
   min_word_len: 3
 
+ml_baseline:
+  classifier_name: "LOGREG" # Options: LOGREG, SVM
+  max_features: 10000 # Size of TF-IDF vocabulary
+  ngram_range: [1, 2] # [min_n, max_n] e.g., Unigrams and Bigrams
+  C: 1.0 # Regularization strength
+  max_iter: 2000 # Maximum iterations for model convergence
+
 # --- Model Specific Hyperparameters ---
 model_options:
   # Classic Deep Learning Models
@@ -37,15 +44,6 @@ model_options:
     dropout: 0.1
     # Note: 'sentence-transformers/all-MiniLM-L6-v2' is the model ID
     model_name: "sentence-transformers/all-MiniLM-L6-v2"
-
-  # Classical Machine Learning Models
-  LOGREG:
-    # Max features for TF-IDF Vectorizer
-    max_features: 10000
-
-  SVM:
-    # Max features for TF-IDF Vectorizer
-    max_features: 15000
 
 callbacks:
   # Early Stopping Configuration
