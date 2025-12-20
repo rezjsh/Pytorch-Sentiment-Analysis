@@ -2,13 +2,13 @@
 import torch
 import sys
 from pathlib import Path
-
 from sentiment_analysis.pipeline.stage_02_dataset import DatasetPipeline
 from sentiment_analysis.pipeline.stage_03_EDA import DataEDAPipeline
 from sentiment_analysis.pipeline.stage_04_model import ModelPipeline
 from sentiment_analysis.pipeline.stage_05_callbacks import CallbacksPipeline
 from sentiment_analysis.pipeline.stage_06_model_trainer import ModelTrainerPipeline
 from sentiment_analysis.pipeline.stage_07_model_evaluation import ModelEvaluationPipeline
+from sentiment_analysis.pipeline.stage_02_ml_classifier import MLClassifierPipeline
 # Fix path issues if running from root
 sys.path.append(str(Path(__file__).parent.resolve()))
 from sentiment_analysis.config.configuration import ConfigurationManager
@@ -32,49 +32,53 @@ def main():
         logger.info(f">>>>>> stage {STAGE_NAME} started <<<<<<")
         data_preprocessing_pipeline = PreprocessingPipeline(config_manager)
         # This returns a tuple: (train_encodings, train_labels, val_encodings, val_labels, test_encodings, test_labels)
-        preprocessed_data_tuple = data_preprocessing_pipeline.run_pipeline() 
+        preprocessed_data_tuple, raw_data = data_preprocessing_pipeline.run_pipeline() 
         logger.info(f">>>>>> stage {STAGE_NAME} completed <<<<<<\n\n")
 
-
-        # --- Stage 2: Dataset & DataLoader Creation ---
-        STAGE_NAME = "Stage 02: Dataset and DataLoader Creation"
-        logger.info(f">>>>>> stage {STAGE_NAME} started <<<<<<")
-        dataset_config = config_manager.get_dataset_config()
-        data_loader_creator = DatasetPipeline(dataset_config)
-        train_loader, val_loader, test_loader = data_loader_creator.run_pipline(preprocessed_data_tuple)
-        logger.info(f"Final DataLoaders created. Train batches: {len(train_loader)}, Validation batches: {len(val_loader)}, Test batches: {len(test_loader)}")
-        logger.info(f">>>>>> stage {STAGE_NAME} completed <<<<<<\n\n")
-
-
-        # --- Stage 3: Exploratory Data Analysis (EDA) ---
-        STAGE_NAME = "Stage 03: Exploratory Data Analysis"
-        logger.info(f">>>>>> stage {STAGE_NAME} started <<<<<<")
-       
-        eda_pipeline = DataEDAPipeline(config_manager)
-        eda_pipeline.run_pipeline(preprocessed_data=preprocessed_data_tuple)
-        logger.info(f">>>>>> stage {STAGE_NAME} completed <<<<<<\n\n")
+        # Decide which pipeline to run based on model type
+        if config_manager.get_mode() == 'ML':
+            run_machine_learning_pipeline(raw_data)
+        elif config_manager.get_mode() == 'DL':
+            run_deep_learning_pipeline(config_manager.get_model_config(), preprocessed_data_tuple)
+        else:
+            logger.error("Invalid mode specified in configuration. Choose 'ML' or 'DL'.")
+            raise ValueError("Invalid mode specified in configuration. Choose 'ML' or 'DL'.")
+        
         
 
-        # --- Stage 4: Model Creation ---
-        STAGE_NAME = "Stage 04: Model Creation"
-        model_config = config_manager.get_model_config()
-        model_pipeline = ModelPipeline(model_config)
-        model = model_pipeline.run_pipeline()
-        logger.info(f">>>>>> stage {STAGE_NAME} completed <<<<<<\n\n")
-
-        # --- Stage 5: Model Training (To be added later) ---
-        # STAGE_NAME = "Stage 05: Model Training"
-        # logger.info(f">>>>>> stage {STAGE_NAME} started <<<<<<")
-        # model_trainer_pipeline = ModelTrainerPipeline(config_manager)
-        # model_trainer_pipeline.run(train_loader, val_loader)
-        # logger.info(f">>>>>> stage {STAGE_NAME} completed <<<<<<\n\n")
-
+       
     except Exception as e:
         logger.error(f"FATAL ERROR in pipeline execution: {e}")
         raise e
 
-def run_deep_learning_pipeline(model, train_loader, val_loader, test_loader):
-    config_manager = ConfigurationManager()
+def run_dl_branch(config_manager, model, preprocessed_data_tuple):
+    """Executes the Deep Learning Path."""
+    # --- Stage 2: Dataset & DataLoader Creation ---
+    STAGE_NAME = "Stage 02: Dataset and DataLoader Creation"
+    logger.info(f">>>>>> stage {STAGE_NAME} started <<<<<<")
+    dataset_config = config_manager.get_dataset_config()
+    data_loader_creator = DatasetPipeline(dataset_config)
+    train_loader, val_loader, test_loader = data_loader_creator.run_pipline(preprocessed_data_tuple)
+    logger.info(f"Final DataLoaders created. Train batches: {len(train_loader)}, Validation batches: {len(val_loader)}, Test batches: {len(test_loader)}")
+    logger.info(f">>>>>> stage {STAGE_NAME} completed <<<<<<\n\n")
+
+
+    # --- Stage 3: Exploratory Data Analysis (EDA) ---
+    STAGE_NAME = "Stage 03: Exploratory Data Analysis"
+    logger.info(f">>>>>> stage {STAGE_NAME} started <<<<<<")
+    
+    eda_pipeline = DataEDAPipeline(config_manager)
+    eda_pipeline.run_pipeline(preprocessed_data=preprocessed_data_tuple)
+    logger.info(f">>>>>> stage {STAGE_NAME} completed <<<<<<\n\n")
+
+     # --- Stage 4: Model Creation ---
+    STAGE_NAME = "Stage 04: Model Creation"
+    model_config = config_manager.get_model_config()
+    model_pipeline = ModelPipeline(model_config)
+    model = model_pipeline.run_pipeline()
+    logger.info(f">>>>>> stage {STAGE_NAME} completed <<<<<<\n\n")
+
+
 
     # --- Stage 5: Callbacks Creation ---
     STAGE_NAME = "Stage 05: Callbacks Creation"
@@ -100,8 +104,17 @@ def run_deep_learning_pipeline(model, train_loader, val_loader, test_loader):
 
 
 
-def run_machine_learning_pipeline():
-    pass
+def run_ml_branch(config_manager, raw_data):
+    """Executes the Machine Learning Baseline Path."""
+
+    # --- Stage 2: ML Classifier Training And Evaluation ---
+    STAGE_NAME = "Stage 02: ML Classifier Training And Evaluation"
+    logger.info(f">>>>>> stage {STAGE_NAME} started <<<<<<")
+    logger.info(">>>>>> Starting ML Baseline Training & Evaluation <<<<<<")
+    X_train, y_train, X_test, y_test = raw_data
+    ml_pipeline = MLClassifierPipeline(config_manager)
+    ml_pipeline.run_pipeline(X_train, y_train)
+    logger.info(">>>>>> ML Baseline execution completed <<<<<<")
 
 if __name__ == '__main__':
     main()
