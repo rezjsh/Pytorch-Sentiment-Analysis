@@ -1,7 +1,7 @@
 # --- configs/config.yaml ---
 
 project_name: "Sentiment_Project"
-mode ='DL' # Options: 'ML' for Machine Learning, 'DL' for Deep Learning
+mode: "DL"  # Options: 'ML' for Machine Learning, 'DL' for Deep Learning
 
 data:
   # Hugging Face dataset name
