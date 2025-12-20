@@ -1,6 +1,7 @@
 # --- configs/config.yaml ---
 
 project_name: "Sentiment_Project"
+mode ='DL' # Options: 'ML' for Machine Learning, 'DL' for Deep Learning
 
 data:
   # Hugging Face dataset name
@@ -20,10 +21,16 @@ eda:
   report_dir: "reports/eda_reports"
   max_words_to_plot: 50
 
+ml_baseline:
+  classifier_name: "LOGREG"
+  model_path: "ml_baseline/model.joblib"
+  report_path: "reports/ml_baseline/metrics.json"
+  metric_file_name: "ml_baseline/metrics.json"
+
 model:
   model_type: "SBERT"
 
-callacks:
+callbacks:
   model_checkpoint:
     checkpoint_dir: "checkpoints/"
 
@@ -33,18 +40,3 @@ trainer:
 evaluation:
   model_path: "checkpoints/best_model.pth"
   report_dir: "reports/evaluation_reports"
-
-trainer_defaults:
-  # Maximum epochs to run (Early Stopping will stop it sooner)
-  max_epochs: 15
-  # Frequency for logging steps during training (e.g., to TensorBoard/stdout)
-  log_every_n_steps: 10
-
-paths:
-  # Directory where model checkpoints are saved
-  checkpoints_dir: "checkpoints"
-  # Directory where logs (e.g., TensorBoard) are stored
-  logs_dir: "tb_logs"
-
-# The name of the model currently selected for execution
-current_model: "SBERT"
