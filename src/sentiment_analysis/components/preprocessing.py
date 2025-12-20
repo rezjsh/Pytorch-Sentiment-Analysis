@@ -16,24 +16,28 @@ class Preprocessing:
     def __init__(self, config: PreprocessingConfig):
         self.config = config
         self.dataset_name = config.dataset_name
-        
-        # Use a BERT-compatible tokenizer for consistency across models
-        self.tokenizer = AutoTokenizer.from_pretrained("bert-base-uncased") 
+
+        # Respect config tokenizer_name if provided; fallback to BERT base
+        tokenizer_name = getattr(config, 'tokenizer_name', None) or "bert-base-uncased"
+        self.tokenizer = AutoTokenizer.from_pretrained(tokenizer_name)
         self.vocab_size = len(self.tokenizer)
-        
-        # # Datasets (will be populated in setup)
-        # self.train_dataset = None
-        # self.val_dataset = None
-        # self.test_dataset = None
-        
+
+        # Datasets/encodings placeholders
+        self.train_dataset = None
+        self.val_dataset = None
+        self.test_dataset = None
+        self.train_encodings = None
+        self.val_encodings = None
+        self.test_encodings = None
+
         # Variables to store raw data for ML models (LogReg, SVM)
         self.raw_train_texts: List[str] = []
         self.raw_train_labels: np.ndarray = np.array([])
         self.raw_test_texts: List[str] = []
         self.raw_test_labels: np.ndarray = np.array([])
-        
-        logger.info(f"SentimentDataModule initialized for dataset: {self.dataset_name}")
-        logger.info(f"Tokenizer type: {type(self.tokenizer).__name__} | Vocab size: {self.vocab_size}")
+
+        logger.info(f"Preprocessing initialized for dataset: {self.dataset_name}")
+        logger.info(f"Tokenizer: {tokenizer_name} | Vocab size: {self.vocab_size}")
     
 
     def get_raw_data(self):
@@ -68,54 +72,73 @@ class Preprocessing:
         """
         Performs data splitting, tokenization, and dataset creation.
         """
-        if self.train_dataset is not None:
-             logger.info("Data setup already performed. Skipping.")
-             return
+        if self.train_encodings is not None and self.val_encodings is not None and self.test_encodings is not None:
+            logger.info("Data setup already performed. Skipping.")
+            return (
+                self.train_encodings,
+                None,
+                self.val_encodings,
+                None,
+                self.test_encodings,
+                None,
+            )
 
         logger.info("Starting data setup: loading, splitting, and tokenizing.")
-        
+
         dataset = self.load_full_dataset()
-        
-        # 1. Concatenate and Prepare for Splitting
-        train_texts = list(dataset['train']['text'])
-        train_labels = list(dataset['train']['label'])
-        test_texts = list(dataset['test']['text'])
-        test_labels = list(dataset['test']['label'])
+
+        # Expected HF columns: 'text' and 'label'
+        try:
+            train_texts = list(dataset['train']['text'])
+            train_labels = list(dataset['train']['label'])
+            test_texts = list(dataset['test']['text'])
+            test_labels = list(dataset['test']['label'])
+        except Exception as e:
+            logger.error(f"Dataset format error. Expected splits 'train'/'test' with columns 'text'/'label': {e}")
+            raise
 
         full_texts = train_texts + test_texts
         full_labels = train_labels + test_labels
 
-        test_val_size = self.config.test_split_ratio * 2
-        
-        # 2. Splitting (Train | Val | Test)
-        seed = self.config.seed
+        test_val_size = float(self.config.test_split_ratio) * 2
 
+        seed = int(self.config.seed)
         train_texts, temp_texts, train_labels, temp_labels = train_test_split(
             full_texts, full_labels, test_size=test_val_size, random_state=seed)
-        
+
         val_texts, test_texts, val_labels, test_labels = train_test_split(
             temp_texts, temp_labels, test_size=0.5, random_state=seed)
-        
-        # Logging split information
-        logger.info(f"Data split sizes: Train={len(train_texts)}, Validation={len(val_texts)}, Test={len(test_texts)}")
 
-        # 3. Store raw data for ML model (TF-IDF path)
+        logger.info(
+            f"Data split sizes: Train={len(train_texts)}, Validation={len(val_texts)}, Test={len(test_texts)}"
+        )
+
+        # Store raw data for ML
         self.raw_train_texts = train_texts
-        self.raw_train_labels = np.array(train_labels) 
+        self.raw_train_labels = np.array(train_labels)
         self.raw_test_texts = test_texts
-        self.raw_test_labels = np.array(test_labels) 
+        self.raw_test_labels = np.array(test_labels)
 
-        # 4. Tokenization (DL model setup)
-        max_len = self.config.max_length
+        # Tokenization for DL
+        max_len = int(self.config.max_length)
         logger.info(f"Tokenizing data with max_length={max_len}")
-        
-        self.train_encodings = self.tokenizer(train_texts, truncation=True, padding='max_length', max_length=max_len)
-        self.val_encodings = self.tokenizer(val_texts, truncation=True, padding='max_length', max_length=max_len)
-        self.test_encodings = self.tokenizer(test_texts, truncation=True, padding='max_length', max_length=max_len)
 
-        
+        self.train_encodings = self.tokenizer(
+            train_texts, truncation=True, padding='max_length', max_length=max_len
+        )
+        self.val_encodings = self.tokenizer(
+            val_texts, truncation=True, padding='max_length', max_length=max_len
+        )
+        self.test_encodings = self.tokenizer(
+            test_texts, truncation=True, padding='max_length', max_length=max_len
+        )
 
-        return (self.train_encodings, train_labels,
-            self.val_encodings, val_labels,
-            self.test_encodings, test_labels)
+        return (
+            self.train_encodings,
+            train_labels,
+            self.val_encodings,
+            val_labels,
+            self.test_encodings,
+            test_labels,
+        )
        
