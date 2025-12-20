@@ -30,6 +30,17 @@ class EDAConfig:
     max_words_to_plot: int  # Max number of words to show in word clouds/bar plots
     min_word_len: int  # Minimum word length to consider in analysis
 
+@dataclass(frozen=True)
+class MLClassifierConfig:
+    classifier_name: str
+    max_features: int
+    max_iter: int
+    ngram_range: List[int]
+    C: float
+    model_path: Path
+    report_path: Path
+
+
 class ModelType(str, Enum):
     """Enum for all supported model types."""
     LSTM = "LSTM"
@@ -37,8 +48,6 @@ class ModelType(str, Enum):
     LSTMATTENTION = "LSTMATTENTION"
     BERT = "BERT"
     SBERT = "SBERT"
-    LOGREG = "LOGREG"
-    SVM = "SVM"
 
 @dataclass(frozen=True)
 class LSTMClassifierConfig:
@@ -81,21 +90,6 @@ class SBERTConfig:
 
 
 @dataclass(frozen=True)
-class LOGREGConfig:
-    input_size: int
-    num_classes: int
-    dropout: float
-
-
-@dataclass(frozen=True)
-class SVMConfig:
-    input_size: int
-    num_classes: int
-    kernel: str
-    C: float
-
-
-@dataclass(frozen=True)
 class ModelConfig:
     model_type: ModelType
     LSTM: Optional[LSTMClassifierConfig] = None
@@ -103,8 +97,6 @@ class ModelConfig:
     LSTMATTENTION: Optional[LSTMATTENTIONConfig] = None
     BERT: Optional[BERTClassifierConfig] = None
     SBERT: Optional[SBERTConfig] = None
-    LOGREG: Optional[LOGREGConfig] = None
-    SVM: Optional[SVMConfig] = None
 
 @dataclass(frozen=True)
 class EarlyStoppingCallbackConfig:
