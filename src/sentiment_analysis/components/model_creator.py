@@ -3,6 +3,7 @@
 import torch
 from sentiment_analysis.models import CNNClassifier, BERTClassifier, LSTMClassifier
 from sentiment_analysis.entity.config_entity import ModelConfig
+from sentiment_analysis.models.SBERTClassifier import SBERTClassifier
 from sentiment_analysis.utils.logging_setup import logger
 from sentiment_analysis.utils.helpers import get_device
 
@@ -37,26 +38,25 @@ class ModelCreator:
         elif model_type == 'LSTMATTENTION':
             model = LSTMClassifier(config=self.config.LSTMATTENTION, vocab_size=vocab_size)
         
-        elif model_type == "BERT" or model_type == "SBERT":
+        elif model_type == "BERT":
             model = BERTClassifier(config=self.config)
 
         elif model_type == 'SBERT':
-            model = BERTClassifier(config=self.config.SBERT, vocab_size=vocab_size)
+            model = SBERTClassifier(config=self.config.SBERT, vocab_size=vocab_size)
         
-        elif model_type == 'LOGREG':
-            model = BERTClassifier(config=self.config.LOGREG, vocab_size=vocab_size)
+        # elif model_type == 'LOGREG':
+        #     model = BERTClassifier(config=self.config.LOGREG, vocab_size=vocab_size)
         
-        elif model_type == 'SVM':
-            model = BERTClassifier(config=self.config.SVM, vocab_size=vocab_size)
+        # elif model_type == 'SVM':
+        #     model = BERTClassifier(config=self.config.SVM, vocab_size=vocab_size)
         
         else:
             logger.error(f"Unknown model name specified in config: {model_type}")
             raise ValueError(f"Model {model_type} not implemented in ModelCreator.")
             
         # Move the model to the target device (CPU/CUDA)
-        if model_type not in ['LOGREG', 'SVM']:
-            model.to(self.device)
-            logger.info(f"Model {model_type} moved to {self.device}.")
+        model.to(self.device)
+        logger.info(f"Model {model_type} moved to {self.device}.")
         logger.info(f"Model {model_type} created successfully.")
         logger.info(f"Model architecture:\n{model}")
         
