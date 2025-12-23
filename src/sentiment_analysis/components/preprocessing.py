@@ -1,6 +1,5 @@
 from datasets import load_dataset
 from transformers import AutoTokenizer
-from torch.utils.data import DataLoader
 from sklearn.model_selection import train_test_split
 import numpy as np
 from typing import List
@@ -10,7 +9,7 @@ from sentiment_analysis.entity.config_entity import PreprocessingConfig
 
 class Preprocessing:
     """
-    Handles data loading, splitting (Train/Val/Test), tokenization, 
+    Handles data loading, splitting (Train/Val/Test), tokenization,
     and manages the dataset/dataloader objects.
     """
     def __init__(self, config: PreprocessingConfig):
@@ -38,7 +37,7 @@ class Preprocessing:
 
         logger.info(f"Preprocessing initialized for dataset: {self.dataset_name}")
         logger.info(f"Tokenizer: {tokenizer_name} | Vocab size: {self.vocab_size}")
-    
+
 
     def get_raw_data(self):
         """Returns raw text data and labels for ML models."""
@@ -62,12 +61,19 @@ class Preprocessing:
         logger.info(f"Starting data download for {self.dataset_name}...")
         try:
             # HuggingFace datasets often manage download and cache automatically
-            load_dataset(self.dataset_name, split='train') 
+            load_dataset(self.dataset_name, split='train')
             logger.info("Data download successful or verified from cache.")
         except Exception as e:
             logger.error(f"Failed to download data: {e}")
             raise
-        
+
+    def get_vocab_size(self):
+        if self.vocab_size is None:
+            logger.error("Vocabulary size not initialized.")
+            raise ValueError("Vocabulary size not initialized.")
+        return self.vocab_size
+
+
     def setup(self):
         """
         Performs data splitting, tokenization, and dataset creation.
@@ -141,4 +147,3 @@ class Preprocessing:
             self.test_encodings,
             test_labels,
         )
-       

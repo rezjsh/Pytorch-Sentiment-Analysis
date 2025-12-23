@@ -15,7 +15,7 @@ model_options:
   # Classic Deep Learning Models
   LSTM:
     embedding_dim: 100
-    hidden_dim: 256
+    hidden_size: 256
     num_layers: 2
     dropout: 0.5
     bidirectional: True
@@ -23,14 +23,14 @@ model_options:
 
   CNN:
     embedding_dim: 100
-    n_filters: 100
+    num_filters: 100
     filter_sizes: [3, 4, 5]
     dropout: 0.5
 
   # Advanced Deep Learning Models
-  LSTMATTENTION:
+  BILSTMATTENTION:
     embedding_dim: 100
-    hidden_dim: 256
+    hidden_size: 256
     num_layers: 2
     dropout: 0.5
 
@@ -48,7 +48,7 @@ model_options:
 callbacks:
   # Early Stopping Configuration
   early_stopping:
-    pacience: 5
+    patience: 5
     mode: "min"
     min_delta: 0.001
 
@@ -66,7 +66,7 @@ callbacks:
 trainer:
   # Optimizer learning rate for Deep Learning models
   learning_rate: 0.0001
-
+  max_epochs: 20
   # Callbacks Configuration
   gradient_clip_norm: 1.0 # Maximum L2 norm for gradient clipping
   es_patience: 5 # Early Stopping: wait this many epochs before stopping

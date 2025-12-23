@@ -2,9 +2,9 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 import torch.nn.utils as utils
-from sentiment_analysis.entity.config_entity import ModelTrainerConfig
 from torchmetrics.classification import BinaryAccuracy
 from tqdm import tqdm
+from sentiment_analysis.entity.config_entity import ModelTrainerConfig
 from sentiment_analysis.utils.logging_setup import logger
 from sentiment_analysis.utils.helpers import get_device
 import matplotlib.pyplot as plt
@@ -14,19 +14,19 @@ class Trainer:
     def __init__(self, config: ModelTrainerConfig, model: nn.Module, callbacks: list = None):
         self.config = config
         self.device = get_device()
-        
+
         self.model = model.to(self.device)
         self.model_name = self.model.__class__.__name__
         self.loss_fn = nn.BCEWithLogitsLoss()
 
         # Optimizer initiated inside Trainer as requested
         self.optimizer = optim.Adam(
-            self.model.parameters(), 
+            self.model.parameters(),
             lr=self.config.learning_rate
         )
 
         self.callbacks = callbacks if callbacks is not None else []
-        
+
         # Late binding: Attach optimizer to callbacks that need it (e.g., LRScheduler)
         self._register_optimizer_to_callbacks()
 
@@ -35,7 +35,7 @@ class Trainer:
         self.val_accuracy = BinaryAccuracy().to(self.device)
 
         # Training State
-        self.history = {'train_loss': [], 'val_loss': [], 'val_acc': []}
+        self.history = {'train_loss': [], 'val_loss': [], 'train_acc': [],'val_acc': []}
         self.gradient_clip_norm = self.config.gradient_clip_norm
 
         # Trigger on_train_start for callbacks
@@ -57,7 +57,7 @@ class Trainer:
     def _forward_pass(self, batch):
         input_ids = batch['input_ids'].to(self.device)
         labels = batch['labels'].to(self.device).float() # BCE expects float labels
-        
+
         # Determine if we need attention_mask (for BERT-like models)
         if 'attention_mask' in batch:
             attention_mask = batch['attention_mask'].to(self.device)
@@ -92,7 +92,7 @@ class Trainer:
         avg_loss = total_loss / len(train_dataloader)
         avg_acc = self.train_accuracy.compute().item()
         self.history['train_loss'].append(avg_loss)
-        
+
         logger.info(f"Train Loss: {avg_loss:.4f} | Train Acc: {avg_acc:.4f}")
         return avg_loss, avg_acc
 
@@ -139,13 +139,13 @@ class Trainer:
         for callback in self.callbacks:
             callback.on_train_end(self)
 
-    
+
     def plot_history(self):
         """
         Generates and saves Training vs Validation plots for Loss and Accuracy.
         """
         epochs = range(1, len(self.history['train_loss']) + 1)
-        
+
         plt.figure(figsize=(12, 5))
 
         # 1. Loss Subplot
@@ -169,7 +169,7 @@ class Trainer:
         plt.grid(True)
 
         plt.tight_layout()
-        
+
         plot_file = self.config.report_dir / f"{self.model_name}_learning_curves.png"
         plt.savefig(plot_file)
         logger.info(f"Learning curves saved to {plot_file}")

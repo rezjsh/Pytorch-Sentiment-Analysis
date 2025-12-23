@@ -9,12 +9,12 @@ class CallbacksPipeline:
 
     def __init__(self, config: ConfigurationManager):
         self.config = config
-    
+
     def run_pipeline(self) -> list:
         """Creates and returns a list of callback instances."""
+        logger.info("Starting callbacks pipeline...")
         callbacks_config = self.config.get_callbacks_config()
         callbacks_manager = CallabcksManager(config=callbacks_config)
         callbacks = callbacks_manager.build_callbacks()
         logger.info("Callbacks pipeline executed successfully.")
         return callbacks
-        

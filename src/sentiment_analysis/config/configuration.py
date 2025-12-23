@@ -1,11 +1,11 @@
 from pathlib import Path
-from src.constants.constants import CONFIG_FILE_PATH, PARAMS_FILE_PATH
-from src.utils.helpers import create_directory, read_yaml_file
-from src.utils.logging_setup import logger
-from src.core.singleton import SingletonMeta
 import torch
-from entity.config_entity import BERTConfig, CNNClassifierConfig, CallbacksConfig, DatasetConfig, EDAConfig, EarlyStoppingCallbackConfig, GradientClipCallbackConfig, LOGREGConfig, LRSchedulerCallbackConfig, LSTMATTENTIONConfig, LSTMClassifierConfig, MLClassifierConfig, ModelCheckpointCallbackConfig, ModelConfig, ModelEvaluationConfig, ModelTrainerConfig, PreprocessingConfig, SBERTConfig, SVMConfig
-from sentiment_analysis.utils.helpers import get_num_workers
+from sentiment_analysis.callbacks.LRSchedulerCallback import LRSchedulerCallback
+from sentiment_analysis.constants.constants import CONFIG_FILE_PATH, PARAMS_FILE_PATH
+from sentiment_analysis.core.singleton import SingletonMeta
+from sentiment_analysis.utils.helpers import create_directory, get_num_workers, read_yaml_file
+from sentiment_analysis.entity.config_entity import BERTClassifierConfig, BiLSTMAttentionConfig, CNNClassifierConfig, CallbacksConfig, EDAConfig, LSTMClassifierConfig, ModelConfig, ModelTrainerConfig, ModelType, PreprocessingConfig, DatasetConfig, MLClassifierConfig, ModelEvaluationConfig, ModelCheckpointCallbackConfig, EarlyStoppingCallbackConfig, LRSchedulerCallbackConfig, GradientClipCallbackConfig, SBERTConfig
+from sentiment_analysis.utils.logging_setup import logger
 import os
 
 class ConfigurationManager(metaclass=SingletonMeta):
@@ -13,7 +13,7 @@ class ConfigurationManager(metaclass=SingletonMeta):
         self.config = read_yaml_file(config_file_path)
         self.params = read_yaml_file(params_file_path)
 
-    
+
     def get_mode(self) -> str:
         """
         Retrieves the mode of operation: 'ML' for Machine Learning or 'DL' for Deep Learning.
@@ -24,7 +24,7 @@ class ConfigurationManager(metaclass=SingletonMeta):
             raise ValueError(f"Invalid mode '{mode}' specified in config. Choose 'ML' or 'DL'.")
         logger.info(f"Mode of operation: {mode}")
         return mode
-    
+
     def get_preprocessing_config(self) -> PreprocessingConfig:
         logger.info("Getting text preprocessing config")
         config = self.config.data
@@ -40,7 +40,7 @@ class ConfigurationManager(metaclass=SingletonMeta):
         )
         logger.info(f"PreprocessingConfig config created: {preprocessing_config}")
         return preprocessing_config
-    
+
     def get_dataset_config(self) -> DatasetConfig:
         """
         Retrieves DataLoader specific configuration parameters.
@@ -58,7 +58,7 @@ class ConfigurationManager(metaclass=SingletonMeta):
         )
         logger.info(f"DatasetConfig created: {dataset_config}")
         return dataset_config
-    
+
 
 
 
@@ -67,26 +67,26 @@ class ConfigurationManager(metaclass=SingletonMeta):
         Retrieves Exploratory Data Analysis specific configuration parameters.
         """
         logger.info("Getting EDA configuration.")
-        config = self.config.eda 
+        config = self.config.eda
         params = self.params.eda
 
         dirs_to_create = [config.report_dir]
         create_directory(dirs_to_create)
         logger.info(f"Created directories for EDA reports: {dirs_to_create}")
-        
+
         eda_config = EDAConfig(
-            report_dir=Path(config.report_dir), 
+            report_dir=Path(config.report_dir),
             max_words_to_plot=params.get('max_words_to_plot', 20),
             min_word_len=params.get('min_word_len', 3)
         )
         logger.info(f"EDAConfig created: {eda_config}")
         return eda_config
-    
+
 
     def get_ml_classifier_config(self) -> MLClassifierConfig:
         config = self.config.ml_baseline
         params = self.params.ml_baseline
-        
+
         # Ensure directories for the model and reports exist
         create_directory([Path(config.model_path).parent, Path(config.report_path).parent])
 
@@ -96,7 +96,7 @@ class ConfigurationManager(metaclass=SingletonMeta):
             report_path=Path(config.report_path),
             max_features=params.max_features,
             ngram_range=params.ngram_range,
-            C=config.C,
+            C=params.C, # Changed from config.C to params.C
             max_iter=params.max_iter
         )
 
@@ -126,7 +126,7 @@ class ConfigurationManager(metaclass=SingletonMeta):
 
         logger.info(f"LSTMClassifierConfig created: {lstm_config}")
         return lstm_config
-    
+
     def get_cnn_config(self, model_type: str) -> CNNClassifierConfig:
         """
         Retrieves CNN model configuration parameters.
@@ -152,7 +152,7 @@ class ConfigurationManager(metaclass=SingletonMeta):
         logger.info(f"CNNClassifierConfig created: {cnn_config}")
         return cnn_config
 
-    def get_lstm_attention_config(self, model_type: str) -> LSTMATTENTIONConfig:
+    def get_lstm_attention_config(self, model_type: str) -> BiLSTMAttentionConfig:
         """
         Retrieves LSTM Attention model configuration parameters.
         """
@@ -167,18 +167,17 @@ class ConfigurationManager(metaclass=SingletonMeta):
                 f"Available: {available_models}"
             )
 
-        lstm_attention_config = LSTMATTENTIONConfig(
+        lstm_attention_config = BiLSTMAttentionConfig(
+            embedding_dim=params.embedding_dim,
             hidden_size=params.hidden_size,
             num_layers=params.num_layers,
-            dropout=params.dropout,
-            bidirectional=params.bidirectional,
-            attention_size=params.attention_size
+            dropout=params.dropout
         )
 
-        logger.info(f"LSTMATTENTIONConfig created: {lstm_attention_config}")
+        logger.info(f"BiLSTMAttention created: {lstm_attention_config}")
         return lstm_attention_config
 
-    def get_bert_config(self, model_type: str) -> BERTConfig:
+    def get_bert_config(self, model_type: str) -> BERTClassifierConfig:
         """
         Retrieves BERT model configuration parameters.
         """
@@ -193,14 +192,15 @@ class ConfigurationManager(metaclass=SingletonMeta):
                 f"Available: {available_models}"
             )
 
-        bert_config = BERTConfig(
-            pretrained_model_name=params.pretrained_model_name,
-            dropout=params.dropout,
-            fine_tune=params.fine_tune
+        bert_config = BERTClassifierConfig(
+            model_name=params.model_name,
+            dropout=params.dropout
         )
 
         logger.info(f"BERTConfig created: {bert_config}")
         return bert_config
+
+
 
     def get_sbert_config(self, model_type: str) -> SBERTConfig:
         """
@@ -218,44 +218,14 @@ class ConfigurationManager(metaclass=SingletonMeta):
             )
 
         sbert_config = SBERTConfig(
-            pretrained_model_name=params.pretrained_model_name,
-            dropout=params.dropout,
-            fine_tune=params.fine_tune
+            model_name=params.model_name,
+            dropout=params.dropout
         )
 
         logger.info(f"SBERTConfig created: {sbert_config}")
         return sbert_config
 
-    def get_logreg_config(self, model_type: str) -> LOGREGConfig:
-        """
-        Retrieves Logistic Regression model configuration parameters.
-        """
-        logger.info("Getting Logistic Regression configuration.")
-        
-    def get_svm_config(self, model_type: str) -> SVMConfig:
-        """
-        Retrieves SVM model configuration parameters.
-        """
-        logger.info("Getting SVM configuration.")
-        params = self.params.model_options.get(model_type, {})
 
-         # Validate model exists
-        if not params:
-            available_models = list(self.params.model_options.keys())
-            raise ValueError(
-                f"❌ Model '{model_type}' not found in model_options. "
-                f"Available: {available_models}"
-            )
-
-        svm_config = SVMConfig(
-            input_size=params.input_size,
-            num_classes=params.num_classes,
-            kernel=params.kernel,
-            C=params.C
-        )
-
-        logger.info(f"SVMConfig created: {svm_config}")
-        return svm_config
     def get_model_config(self) -> ModelConfig:
         """
         Retrieves model configuration parameters.
@@ -264,28 +234,30 @@ class ConfigurationManager(metaclass=SingletonMeta):
         # Get base config
         config = self.config.model
         model_type = config.model_type.upper()
-        params = self.params.model_options.get(model_type, {})
 
-         # Validate model exists
+        # Get parameters for the specified model_type
+        params = self.params.model_options.get(model_type)
+
+        # Validate model exists in params
         if not params:
             available_models = list(self.params.model_options.keys())
             raise ValueError(
                 f"❌ Model '{model_type}' not found in model_options. "
                 f"Available: {available_models}"
             )
-        
+
         model_config = ModelConfig(
-            model_type=model_type,
-            LSTM=self.get_lstm_config(model_type),
-            CNN=self.get_cnn_config(model_type),
-            LSTMATTENTION=self.get_lstm_attention_config(model_type),
-            BERT=self.get_bert_config(model_type),
-            SBERT=self.get_sbert_config(model_type)
+            model_type=ModelType(model_type), # Ensure model_type is of Enum ModelType
+            LSTM=self.get_lstm_config(model_type) if model_type == "LSTM" else None,
+            CNN=self.get_cnn_config(model_type) if model_type == "CNN" else None,
+            BILSTMATTENTION=self.get_lstm_attention_config(model_type) if model_type == "BILSTMATTENTION" else None,
+            BERT=self.get_bert_config(model_type) if model_type == "BERT" else None,
+            SBERT=self.get_sbert_config(model_type) if model_type == "SBERT" else None
         )
         logger.info(f"ModelConfig created: {model_config}")
         return model_config
 
-    
+
     def get_early_stopping_config(self) -> EarlyStoppingCallbackConfig:
         """
         Retrieves Early Stopping callback configuration parameters.
@@ -299,7 +271,7 @@ class ConfigurationManager(metaclass=SingletonMeta):
         )
         logger.info(f"EarlyStoppingCallbackConfig created: {early_stopping_config}")
         return early_stopping_config
-    
+
 
     def get_lr_scheduler_config(self) -> LRSchedulerCallbackConfig:
         """
@@ -314,19 +286,19 @@ class ConfigurationManager(metaclass=SingletonMeta):
         )
         logger.info(f"LRSchedulerCallbackConfig created: {lr_scheduler_config}")
         return lr_scheduler_config
-    
+
     def get_gradient_clip_config(self) -> GradientClipCallbackConfig:
         """
         Retrieves Gradient Clipping callback configuration parameters.
         """
         logger.info("Getting Gradient Clip Callback configuration.")
-        config = self.config.callbacks.gradient_clip
+        params = self.params.callbacks.gradient_clip
         gradient_clip_config = GradientClipCallbackConfig(
-            max_norm=config.max_norm
+            max_norm=params.max_norm
         )
         logger.info(f"GradientClipCallbackConfig created: {gradient_clip_config}")
         return gradient_clip_config
-    
+
 
     def get_model_checkpoint_config(self) -> ModelCheckpointCallbackConfig:
         """
@@ -344,7 +316,7 @@ class ConfigurationManager(metaclass=SingletonMeta):
         )
         logger.info(f"ModelCheckpointCallbackConfig created: {model_checkpoint_config}")
         return model_checkpoint_config
-    
+
 
     def get_callbacks_config(self) -> CallbacksConfig:
         """
@@ -360,7 +332,7 @@ class ConfigurationManager(metaclass=SingletonMeta):
         logger.info(f"CallbacksConfig created: {callbacks_config}")
         return callbacks_config
 
-    
+
     def get_model_trainer_config(self) -> ModelTrainerConfig:
         """
         Retrieves Model Trainer configuration parameters.
@@ -372,7 +344,7 @@ class ConfigurationManager(metaclass=SingletonMeta):
         dirs_to_create = [config.report_dir]
         create_directory(dirs_to_create)
         logger.info(f"Created directories for Trainer reports: {dirs_to_create}")
-        
+
         model_trainer_config = ModelTrainerConfig(
             max_epochs=params.max_epochs,
             learning_rate=params.learning_rate,
@@ -382,7 +354,7 @@ class ConfigurationManager(metaclass=SingletonMeta):
         logger.info(f"ModelTrainerConfig created: {model_trainer_config}")
         return model_trainer_config
 
-    
+
     def get_model_evaluation_config(self) -> ModelEvaluationConfig:
         """
         Retrieves Model Evaluation configuration parameters.
@@ -397,7 +369,7 @@ class ConfigurationManager(metaclass=SingletonMeta):
             logger.info(f"Model path exists: {config.model_path}")
         else:
             raise ValueError(f"❌ Model path does not exist: {config.model_path}")
-        
+
         model_evaluation_config = ModelEvaluationConfig(
             model_path=Path(config.model_path),
             report_dir=Path(config.report_dir)

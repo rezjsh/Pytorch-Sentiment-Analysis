@@ -9,7 +9,7 @@ class LRSchedulerCallback(BaseCallback):
         self.config = config
         self.optimizer = optimizer
         self.scheduler = None
-        
+
     def initialize_scheduler(self, optimizer):
         """Late binding of the optimizer."""
         self.optimizer = optimizer

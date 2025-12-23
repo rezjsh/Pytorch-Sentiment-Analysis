@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 from typing import Dict, Any, List, Optional
-from pathlib import Path    
+from pathlib import Path
 from enum import Enum
 
 @dataclass(frozen=True)
@@ -13,7 +13,7 @@ class PreprocessingConfig:
     tokenizer_name: str
 
 @dataclass(frozen=True)
-class DatasetConfig: # NEW CONFIG ENTITY
+class DatasetConfig: 
     """
     Configuration for creating the final PyTorch DataLoaders.
     """
@@ -45,8 +45,9 @@ class ModelType(str, Enum):
     """Enum for all supported model types."""
     LSTM = "LSTM"
     CNN = "CNN"
-    LSTMATTENTION = "LSTMATTENTION"
+    BILSTMATTENTION = "BILSTMATTENTION"
     BERT = "BERT"
+    DISTILBERT = "DISTILBERT"
     SBERT = "SBERT"
 
 @dataclass(frozen=True)
@@ -67,26 +68,21 @@ class CNNClassifierConfig:
 
 
 @dataclass(frozen=True)
-class LSTMATTENTIONConfig:
+class BERTClassifierConfig:
+    model_name: str
+    dropout: float
+
+@dataclass(frozen=True)
+class BiLSTMAttentionConfig:
+    embedding_dim: int
     hidden_size: int
     num_layers: int
     dropout: float
-    bidirectional: bool
-    attention_size: int
-
-
-@dataclass(frozen=True)
-class BERTClassifierConfig:
-    pretrained_model_name: str
-    dropout: float
-    fine_tune: bool
-
 
 @dataclass(frozen=True)
 class SBERTConfig:
-    pretrained_model_name: str
+    model_name: str
     dropout: float
-    fine_tune: bool
 
 
 @dataclass(frozen=True)
@@ -94,7 +90,7 @@ class ModelConfig:
     model_type: ModelType
     LSTM: Optional[LSTMClassifierConfig] = None
     CNN: Optional[CNNClassifierConfig] = None
-    LSTMATTENTION: Optional[LSTMATTENTIONConfig] = None
+    BILSTMATTENTION: Optional[BiLSTMAttentionConfig] = None
     BERT: Optional[BERTClassifierConfig] = None
     SBERT: Optional[SBERTConfig] = None
 
@@ -131,7 +127,7 @@ class ModelTrainerConfig:
     max_epochs: int
     learning_rate: float
     gradient_clip_norm: float
-    report_dir: Path   
+    report_dir: Path
 
 @dataclass(frozen=True)
 class ModelEvaluationConfig:

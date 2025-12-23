@@ -16,12 +16,12 @@ class DatasetPipeline:
     def run_pipline(self, preprocessed_data: Tuple) -> Tuple[DataLoader, DataLoader, DataLoader]:
         """
         Takes the tuple output from the Preprocessing component and creates DataLoaders.
-        
+
         Args:
-            preprocessed_data (Tuple): (train_encodings, train_labels, 
-                                        val_encodings, val_labels, 
+            preprocessed_data (Tuple): (train_encodings, train_labels,
+                                        val_encodings, val_labels,
                                         test_encodings, test_labels)
-        
+
         Returns:
             Tuple[DataLoader, DataLoader, DataLoader]: Train, Validation, and Test DataLoaders.
         """
@@ -31,11 +31,11 @@ class DatasetPipeline:
              test_encodings, test_labels) = preprocessed_data
 
             # 1. Create Datasets
-            train_dataset = SentimentDataset(train_encodings, train_labels)
-            val_dataset = SentimentDataset(val_encodings, val_labels)
-            test_dataset = SentimentDataset(test_encodings, test_labels)
+            train_dataset = SentimentDataset(self.config, train_encodings, train_labels)
+            val_dataset = SentimentDataset(self.config, val_encodings, val_labels)
+            test_dataset = SentimentDataset(self.config, test_encodings, test_labels)
             logger.info("Created Train, Validation, and Test Datasets.")
-            
+
             # 2. Create DataLoaders
             train_loader = DataLoader(
                 train_dataset,
@@ -44,7 +44,7 @@ class DatasetPipeline:
                 num_workers=self.config.num_workers,
                 pin_memory=self.config.pin_memory
             )
-            
+
             val_loader = DataLoader(
                 val_dataset,
                 batch_size=self.config.batch_size,
@@ -52,7 +52,7 @@ class DatasetPipeline:
                 num_workers=self.config.num_workers,
                 pin_memory=self.config.pin_memory
             )
-            
+
             test_loader = DataLoader(
                 test_dataset,
                 batch_size=self.config.batch_size,
@@ -60,9 +60,9 @@ class DatasetPipeline:
                 num_workers=self.config.num_workers,
                 pin_memory=self.config.pin_memory
             )
-            
+
             logger.info(f"Created DataLoaders (Train={len(train_loader)} batches) successfully.")
-            
+
             return train_loader, val_loader, test_loader
 
         except Exception as e:

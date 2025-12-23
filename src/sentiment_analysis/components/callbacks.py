@@ -1,4 +1,3 @@
-
 from sentiment_analysis.callbacks import EarlyStoppingCallback, ModelCheckpointCallback
 from sentiment_analysis.callbacks.GradientClipCallback import GradientClipCallback
 from sentiment_analysis.callbacks.LRSchedulerCallback import LRSchedulerCallback
@@ -9,7 +8,7 @@ class CallabcksManager:
     def __init__(self, config: CallbacksConfig) -> None:
         self.config = config
         self.callbacks = []
-    
+
     def build_callbacks(self) -> list:
         """Build and return a list of callback instances based on the configuration."""
         if self.config.early_stopping_callback_config is not None:
@@ -27,11 +26,11 @@ class CallabcksManager:
         if self.config.gradient_clip_callback_config is not None:
             gradient_clip_callback = GradientClipCallback(config=self.config.gradient_clip_callback_config)
             self.callbacks.append(gradient_clip_callback)
-        
+
         logger.info(f"Total callbacks created: {len(self.callbacks)}")
-        
+
         return self.callbacks
-    
+
 
     @staticmethod
     def attach_optimizer_to_callbacks(callbacks, optimizer):

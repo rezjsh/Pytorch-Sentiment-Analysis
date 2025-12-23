@@ -1,6 +1,5 @@
 import torch
 import json
-import pandas as pd
 import seaborn as sns
 import matplotlib.pyplot as plt
 from pathlib import Path
@@ -18,7 +17,7 @@ class ModelEvaluation:
 
     def evaluate(self, test_loader):
         """Runs the test loop and generates reports."""
-        
+
         # 1. Load best weights
         logger.info(f"Loading best model from {self.config.model_path}")
         self.model.load_state_dict(torch.load(self.config.model_path, map_location=self.device))
@@ -33,14 +32,14 @@ class ModelEvaluation:
                 # Reuse forward pass logic from your trainer or implement here
                 input_ids = batch['input_ids'].to(self.device)
                 labels = batch['labels'].to(self.device)
-                
+
                 if 'attention_mask' in batch:
                     logits = self.model(input_ids=input_ids, attention_mask=batch['attention_mask'].to(self.device))
                 else:
                     logits = self.model(input_ids=input_ids)
-                
+
                 preds = (torch.sigmoid(logits) > 0.5).int()
-                
+
                 all_preds.extend(preds.cpu().numpy())
                 all_labels.extend(labels.cpu().numpy())
 

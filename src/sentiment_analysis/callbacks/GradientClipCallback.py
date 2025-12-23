@@ -1,4 +1,3 @@
-
 from sentiment_analysis.callbacks.BaseCallback import BaseCallback
 from sentiment_analysis.entity.config_entity import GradientClipCallbackConfig
 

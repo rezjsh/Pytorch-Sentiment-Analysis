@@ -1,8 +1,7 @@
-from typing import Dict, Union
 import torch
 import torch.nn as nn
 from transformers import AutoModel, AutoConfig
-from sentiment_analysis.entity.config_entity import SBERTClassifierConfig
+from sentiment_analysis.entity.config_entity import SBERTConfig
 from sentiment_analysis.models.BaseClassifier import BaseClassifier
 
 class SBERTClassifier(BaseClassifier):
@@ -10,13 +9,13 @@ class SBERTClassifier(BaseClassifier):
     A classifier using a pre-trained Sentence Transformer model.
     Utilizes Mean Pooling to derive fixed-size sentence embeddings.
     """
-    def __init__(self, config: SBERTClassifierConfig):
+    def __init__(self, config: SBERTConfig):
         # Initialize Base with output_dim=1 for binary classification
         super().__init__(output_dim=1)
-        
+
         self.config = config
 
-        # 1. Load Pre-trained Encoder (e.g., MiniLM, RoBERTa)
+        # 1. Load Pre-trained Encoder
         self.encoder = AutoModel.from_pretrained(self.config.model_name)
 
         # 2. Extract Hidden Dimension dynamically
@@ -29,7 +28,7 @@ class SBERTClassifier(BaseClassifier):
 
     def _mean_pooling(self, model_output, attention_mask):
         """
-        Derives the sentence embedding by averaging token embeddings, 
+        Derives the sentence embedding by averaging token embeddings,
         accounting for padding via the attention mask.
         """
         # last_hidden_state shape: [batch size, seq len, hidden size]
@@ -47,17 +46,21 @@ class SBERTClassifier(BaseClassifier):
         # Calculate Mean
         return sum_embeddings / sum_mask
 
-    def forward(self, batch: Union[Dict[str, torch.Tensor], torch.Tensor]) -> torch.Tensor:
+    # Update the method signature here
+    def forward(self, input_ids=None, attention_mask=None, **kwargs) -> torch.Tensor:
         """
-        Forward pass accepting the Trainer's batch dictionary.
+        Forward pass modified to accept unpacked keyword arguments from the Trainer.
         """
-        # 1. Extract inputs
-        if isinstance(batch, dict):
+        # 1. Handle inputs (keeping your logic for flexibility)
+        # If the trainer passed 'batch' as a single positional argument
+        if input_ids is None and 'batch' in kwargs:
+            batch = kwargs['batch']
             input_ids = batch['input_ids']
             attention_mask = batch.get('attention_mask')
-        else:
-            input_ids = batch
-            attention_mask = torch.ones_like(input_ids) # Fallback if mask is missing
+
+        # Ensure we have a mask
+        if attention_mask is None:
+            attention_mask = torch.ones_like(input_ids)
 
         # 2. Transformer Forward Pass
         outputs = self.encoder(
@@ -66,8 +69,7 @@ class SBERTClassifier(BaseClassifier):
             return_dict=True
         )
 
-        # 3. Advanced Pooling: Mean pooling over all tokens
-        # 
+        # 3. Mean pooling
         sentence_embedding = self._mean_pooling(outputs, attention_mask)
 
         # 4. Classification
