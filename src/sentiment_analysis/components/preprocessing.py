@@ -73,7 +73,11 @@ class Preprocessing:
             raise ValueError("Vocabulary size not initialized.")
         return self.vocab_size
 
-
+    def get_tokenizer(self):
+        if self.tokenizer is None:
+            logger.error("Tokenizer not initialized.")
+            raise ValueError("Tokenizer not initialized.")
+        return self.tokenizer
     def setup(self):
         """
         Performs data splitting, tokenization, and dataset creation.

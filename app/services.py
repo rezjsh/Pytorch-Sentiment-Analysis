@@ -1,11 +1,12 @@
 from __future__ import annotations
 import json
 from pathlib import Path
-from typing import List, Tuple
-
+from typing import List, Tuple, Any
+import torch.nn as nn
+import torch
 import numpy as np
-
 from sentiment_analysis.components.MLClassifier import MLClassifier
+from sentiment_analysis.components.model_creator import ModelCreator
 from sentiment_analysis.components.preprocessing import Preprocessing
 from sentiment_analysis.config.configuration import ConfigurationManager
 from sentiment_analysis.entity.config_entity import MLClassifierConfig, PreprocessingConfig
@@ -18,92 +19,57 @@ class ModelService:
         self.paths = paths
         self.config_manager = ConfigurationManager()
         self.devcie = get_device()
+        self.prep = Preprocessing(self.config_manager.get_preprocessing_config())
+        self.tokenizer = self.prep.get_tokenizer()
+        self.dl_model = None
+        self.clf = None
 
-    
 
-    def get_model(self, model_name: str, dataset_name: str, on_info=None, on_success=None) -> MLClassifier:
-        """Load a cached baseline or train quickly if missing."""
-        model_path = self.checkpoints_dir / f"{model_name.lower()}_baseline.joblib"
-        cfg = MLClassifierConfig(
-            classifier_name=model_name,
-            ngram_range=[1, 2],
-            max_features=50000,
-            max_iter=2000,
-            C=1.0,
-            model_path=str(model_path),
-            report_path=str(self.reports_dir / f"{model_name.lower()}_report.json"),
-        )
-        clf = MLClassifier(cfg)
+    def get_ml_model(self, model_name: str) -> MLClassifier:
+        """Loads or trains a Scikit-Learn Baseline."""
+        ml_classifier_config = MLClassifierConfig(**self.config_manager.get_ml_classifier_config())
+        model_path = self.paths.checkpoints / f"{model_name.lower()}_baseline.joblib"
+        self.clf = MLClassifier(ml_classifier_config)
         if model_path.exists():
             logger.info(f"Loading existing model from {model_path}")
-            clf.load()
-            return clf
-
-        if on_info:
-            on_info("No saved model found. Training a quick baseline model now (first run only)...")
-        # prepare data
-        prep_cfg = PreprocessingConfig(
-            dataset_name=dataset_name,
-            batch_size=32,
-            max_length=128,
-            test_split_ratio=0.2,
-            seed=42,
-            tokenizer_name="bert-base-uncased",
-        )
-        prep = Preprocessing(prep_cfg)
-        prep.prepare_data()
-        prep.setup()
-
-        X_train, y_train = prep.raw_train_texts, prep.raw_train_labels
-        X_test, y_test = prep.raw_test_texts, prep.raw_test_labels
-
-        clf.train(X_train, y_train)
-        acc, _ = clf.evaluate(X_test, y_test)
-
-        clf.save()
-        try:
-            fi = clf.get_feature_importance(15)
-            rep = {
-                "accuracy": float(acc),
-                "top_positive": {"word": [w for w, _ in fi["top_positive"]], "weight": [float(v) for _, v in fi["top_positive"]]},
-                "top_negative": {"word": [w for w, _ in fi["top_negative"]], "weight": [float(v) for _, v in fi["top_negative"]]},
-            }
-            with open(cfg.report_path, "w", encoding="utf-8") as f:
-                json.dump(rep, f, indent=2)
-        except Exception as e:
-            logger.warning(f"Could not compute/save feature importance report: {e}")
-
-        if on_success:
-            on_success(f"Baseline {model_name} trained. Accuracy: {acc:.4f}. Model cached for next runs.")
-        return clf
+            self.clf.load()
+            return self.clf
+        
 
     @staticmethod
-    def predict(clf: MLClassifier, texts: List[str]) -> np.ndarray:
-        return clf.pipeline.predict(texts)
+    def predict(self, text: List[str]) -> np.ndarray:
+        return self.clf.pipeline.predict(text)
 
     @staticmethod
-    def predict_with_scores(clf: MLClassifier, texts: List[str]):
-        """Return predictions and a positive-class score if available.
-        - For LogisticRegression: use predict_proba
-        - For LinearSVC: use decision_function and min-max scale to [0,1]
-        """
-        clf_step = clf.pipeline.named_steps.get('classifier')
-        preds = clf.pipeline.predict(texts)
-        scores = None
+    def predict_ml(self, text: List[str]) -> Tuple[int, float]:
+        preds = self.clf.pipeline.predict([text])
         try:
-            # LogisticRegression
-            if hasattr(clf_step, 'predict_proba'):
-                proba = clf.pipeline.predict_proba(texts)
-                scores = proba[:, 1]
-            elif hasattr(clf_step, 'decision_function'):
-                # LinearSVC decision function -> scale to [0,1]
-                dec = clf.pipeline.decision_function(texts)
-                # Avoid division by zero on constant vectors
-                dmin, dmax = float(np.min(dec)), float(np.max(dec))
-                if dmax - dmin > 1e-12:
-                    scores = (dec - dmin) / (dmax - dmin)
-                else:
-                    scores = np.zeros_like(dec)
-        except Exception:
-            pass
-        return preds, scores
+            scores = self.clf.pipeline.predict_proba([text])[:, 1]
+        except:
+            dec = self.clf.pipeline.decision_function([text])
+            scores = [1 / (1 + np.exp(-dec[0]))] # Sigmoid scaling
+        return int(preds[0]), float(scores[0])
+
+
+    def get_dl_model(self, model_type: str) -> Tuple[nn.Module, Any]:
+        """Loads PyTorch model architecture and pre-trained weights."""
+
+        self.dl_model = ModelCreator(config=self.config_manager.get_model_config())
+        self.dl_model = self.dl_model.create_model(vocab_size=len(self.tokenizer)).to(self.device)
+        weight_path = self.paths.checkpoints / f"{model_type.lower()}_best.pth"
+        if weight_path.exists():
+            self.dl_model.load_state_dict(torch.load(weight_path, map_location=self.device))
+        self.dl_model.eval()
+        return self.dl_model, self.tokenizer
+
+    @staticmethod
+    def predict_dl(self, text: str):
+        """Unified inference for PyTorch models."""
+        inputs = self.tokenizer(text, return_tensors="pt", truncation=True, padding=True).to(self.device)
+        with torch.no_grad():
+            logits = self.dl_model(**inputs)
+            # Support for models returning dicts (like BERT) or raw tensors
+            if isinstance(logits, dict): logits = logits.get('logits', logits)
+            
+            probs = torch.sigmoid(logits).cpu().item()
+            return 1 if probs > 0.5 else 0, probs
