@@ -7,14 +7,19 @@ import numpy as np
 
 from sentiment_analysis.components.MLClassifier import MLClassifier
 from sentiment_analysis.components.preprocessing import Preprocessing
+from sentiment_analysis.config.configuration import ConfigurationManager
 from sentiment_analysis.entity.config_entity import MLClassifierConfig, PreprocessingConfig
+from sentiment_analysis.utils.helpers import get_device
 from sentiment_analysis.utils.logging_setup import logger
 
 
-class BaselineService:
-    def __init__(self, checkpoints_dir: Path, reports_dir: Path):
-        self.checkpoints_dir = checkpoints_dir
-        self.reports_dir = reports_dir
+class ModelService:
+    def __init__(self, paths: Tuple[Path, Path, Path]):
+        self.paths = paths
+        self.config_manager = ConfigurationManager()
+        self.devcie = get_device()
+
+    
 
     def get_model(self, model_name: str, dataset_name: str, on_info=None, on_success=None) -> MLClassifier:
         """Load a cached baseline or train quickly if missing."""
